@@ -2,7 +2,7 @@
 This repository is **Hub of Image Restoration models**.
 Refer the instruction below, you can implement sample process of training and testing.
 
-*※ 한국어 가이드는 README_kr.md 파일을 참조하시기 바랍니다.*
+*※ 한국어 가이드는 [README_kr.md](https://github.com/bmnptnt/IR_Hub/blob/main/README_kr.md) 파일을 참조하시기 바랍니다.*
 
 ## Environment
 - You must install a python virtual environment of version >= 3.8 
