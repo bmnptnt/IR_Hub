@@ -16,6 +16,7 @@ pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 torchaudio==0.12.1 --e
 ```
 pip install -r requirements.txt
 ```
+
 ## Dataset
 - Place your training dataset in the './trainsets/' path.
 ```
@@ -59,3 +60,25 @@ pip install -r requirements.txt
 │              └── Set5/
 │  
 ```
+
+## Training
+- By running 'main_train_psnr.py', You can train image restoration model to improve PSNR.
+```
+python main_train_psnr.py --opt <Path of option file about model> 
+```
+- By following example commands, You can train the EDSR newtork.
+```
+python main_train_psnr.py --opt options/train_edsr_sr_baseline.json
+```
+## Testing
+- By running 'main_test_psnr.py', You can test image restoration model. Result of testing, You can get the PSNR/SSIM score and inference time.
+```
+python main_test_psnr.py --model <name of model> --scale <resolution scalig factor> --model_path <path of pretrained model> --folder_lq <path of low quality images> --folder_gt <path of grount truth images>
+```
+- By following example commands, You can test the EDSR newtork for x2 image super resolution.
+```
+python main_test_psnr.py --model edsr --scale 2 --model_path model_zoo/edsr_b2_x2.pth --folder_lq testsets/SR/LR/Set5/x2/ --folder_gt testsets/SR/HR/Set5/
+```
+
+## Acknowledgement
+- I refer [KAIR](https://github.com/cszn/KAIR) repostory.
