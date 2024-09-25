@@ -1,0 +1,2 @@
+python main_train_psnr.py --opt options/baek/train_edsr_sr_baseline.json
+python main_test_psnr.py --model edsr --scale 2 --model_path model_zoo/edsr_b2_x2.pth --folder_lq testsets/SR/LR/Set5/x2/ --folder_gt testsets/SR/HR/Set5/
