@@ -73,7 +73,7 @@ python main_train_psnr.py --opt <Path of option file about model>
 python main_train_psnr.py --opt options/train_edsr_sr_baseline.json
 ```
 ## Testing
-- By running 'main_test_psnr.py', You can test image restoration model. Result of testing, You can get the PSNR/SSIM score and inference time.
+- By running 'main_test_psnr.py', You can test image restoration model. Result of testing, You can get the PSNR, SSIM score and inference time.
 ```
 python main_test_psnr.py --model <name of model> --scale <resolution scalig factor> --model_path <path of pretrained model> --folder_lq <path of low quality images> --folder_gt <path of grount truth images>
 ```
