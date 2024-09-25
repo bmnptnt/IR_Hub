@@ -82,5 +82,11 @@ python main_test_psnr.py --model <name of model> --scale <resolution scalig fact
 python main_test_psnr.py --model edsr --scale 2 --model_path model_zoo/edsr_b2_x2.pth --folder_lq testsets/SR/LR/Set5/x2/ --folder_gt testsets/SR/HR/Set5/
 ```
 
+## Performance
+- By following commands, You can check PSNR and SSIM between generated iamges and ground truth images.
+```
+python check_performance.py --folder_lq <path of generated image> --folder_gt <path of ground truth iamge>
+```
+
 ## Acknowledgement
 - I refer [KAIR](https://github.com/cszn/KAIR) repository.
