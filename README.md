@@ -81,4 +81,4 @@ python main_test_psnr.py --model edsr --scale 2 --model_path model_zoo/edsr_b2_x
 ```
 
 ## Acknowledgement
-- I refer [KAIR](https://github.com/cszn/KAIR) repostory.
+- I refer [KAIR](https://github.com/cszn/KAIR) repository.
