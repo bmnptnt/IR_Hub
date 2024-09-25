@@ -86,4 +86,4 @@ python check_performance.py --folder_lq <평가하기 위한 영상 경로> --fo
 ```
 
 ## Acknowledgement
-- [KAIR](https://github.com/cszn/KAIR) 리포지토리를 참조하여 제작되었습니다. 
+- [KAIR](https://github.com/cszn/KAIR) 리포지토리를 참조하였습니다. 
