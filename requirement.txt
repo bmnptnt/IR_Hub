@@ -9,3 +9,4 @@ requests
 timm
 einops
 torchinfo
+lpips
