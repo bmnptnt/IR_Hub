@@ -83,10 +83,11 @@ python main_test_psnr.py --model edsr --scale 2 --model_path model_zoo/edsr_b2_x
 ```
 
 ## Performance
-- By following commands, You can check PSNR and SSIM between generated iamges and ground truth images.
+- By following commands, You can check objective quality(PSNR,SSIM) and subjective quality(LPIPS) between generated iamges and ground truth images.
 ```
 python check_performance.py --folder_lq <path of generated image> --folder_gt <path of ground truth iamge>
 ```
 
 ## Acknowledgement
-- I refer [KAIR](https://github.com/cszn/KAIR) repository.
+- [KAIR](https://github.com/cszn/KAIR)
+- [LPIPS](https://github.com/richzhang/PerceptualSimilarity)
