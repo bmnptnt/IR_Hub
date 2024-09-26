@@ -80,10 +80,11 @@ python main_test_psnr.py --model <모델명> --scale <영상 해상도 배율> -
 python main_test_psnr.py --model edsr --scale 2 --model_path model_zoo/edsr_b2_x2.pth --folder_lq testsets/SR/LR/Set5/x2/ --folder_gt testsets/SR/HR/Set5/
 ```
 ## Performance
-- 아래의 예시 코드를 실행하여 두 영상 간의 PSNR 과 SSIM을 확인할 수 있습니다.
+- 아래의 예시 코드를 실행하여 두 영상 간의 객관적 화질 지표(PSNR, SSIM)과 주관적 화질 지표(LPIPS)를 확인할 수 있습니다.
 ```
 python check_performance.py --folder_lq <평가하기 위한 영상 경로> --folder_gt <정답, 원본 영상 경로>
 ```
 
 ## Acknowledgement
-- [KAIR](https://github.com/cszn/KAIR) 리포지토리를 참조하였습니다. 
+- [KAIR](https://github.com/cszn/KAIR)
+- [LPIPS](https://github.com/richzhang/PerceptualSimilarity)
