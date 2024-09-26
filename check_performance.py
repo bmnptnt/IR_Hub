@@ -29,15 +29,27 @@ if __name__=="__main__":
     for i, gt_img in enumerate(glob(f"{args.folder_gt}/*")):
         img_name = os.path.basename(gt_img)
         lq_img = f"{args.folder_lq}/{os.path.splitext(img_name)[0]}_mct{os.path.splitext(img_name)[1]}"
+
         gt = cv2.imread(gt_img, cv2.IMREAD_COLOR)
+        lq = cv2.imread(lq_img, cv2.IMREAD_COLOR)
+
+        gt_h, gt_w, _ = gt.shape
+        lq_h, lq_w, _ = lq.shape
+
+        if lq_h < gt_h:
+            gt=gt[:lq_h,:,:]
+        elif lq_h > gt_h:
+            lq=lq[:gt_h,:,:]
+        if lq_w < gt_w:
+            gt=gt[:,:lq_w,:]
+        elif lq_w > gt_w:
+            lq=lq[:,:gt_w,:]
 
         gt_lpips = lpips.im2tensor(gt)
+        lq_lpips = lpips.im2tensor(lq)
 
         gt = gt.astype(np.float32) / 255.
         gt = (gt * 255.0).round().astype(np.uint8)
-        lq = cv2.imread(lq_img, cv2.IMREAD_COLOR)
-
-        lq_lpips = lpips.im2tensor(lq)
 
         psnr += calculate_psnr(gt, lq)
         ssim += calculate_ssim(gt, lq)
