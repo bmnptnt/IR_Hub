@@ -62,27 +62,27 @@ pip install -r requirements.txt
 ```
 
 ## Training
-- 'main_train_psnr.py' 를 실행하여 영상 복원 모델을 학습시킬 수 있습니다. PSNR 관점에서의 복원 성능 향상을 위한 학습이 이루어집니다. 
+- 'TRAIN_psnr.py' 를 실행하여 영상 복원 모델을 학습시킬 수 있습니다. PSNR 관점에서의 복원 성능 향상을 위한 학습이 이루어집니다. 
 ```
-python main_train_psnr.py --opt <모델 설정 파일 경로> 
+python TRAIN_psnr.py --opt <모델 설정 파일 경로> 
 ```
 - 아래의 예시 코드를 실행하여 EDSR 모델에 대한 학습을 진행할 수 있습니다. 
 ```
-python main_train_psnr.py --opt options/train_edsr_sr_baseline.json
+python TRAIN_psnr.py --opt options/train_edsr_sr_baseline.json
 ```
 ## Testing
-- 'main_test_psnr.py' 를 실행하여 영상 복원 모델의 성능을 평가할 수 있습니다. 결과로서 화질 지표인 PSNR, SSIM과 추론 시간을 확인할 수 있습니다. 
+- 'TEST.py' 를 실행하여 영상 복원 모델의 성능을 평가할 수 있습니다. 결과로서 화질 지표인 PSNR, SSIM과 추론 시간을 확인할 수 있습니다. 
 ```
-python main_test_psnr.py --model <모델명> --scale <영상 해상도 배율> --model_path <사전 학습된 모델 경로> --folder_lq <저화질, 저해상도 영상 경로> --folder_gt <정답, 원본 영상 경로>
+python TEST_psnr.py --model <모델명> --scale <영상 해상도 배율> --model_path <사전 학습된 모델 경로> --folder_lq <저화질, 저해상도 영상 경로> --folder_gt <정답, 원본 영상 경로>
 ```
 - 아래의 예시 코드를 실행하여 EDSR의 영상 해상도 x2배 업스케일링에 대한 성능을 확인할 수 있습니다. 
 ```
-python main_test_psnr.py --model edsr --scale 2 --model_path model_zoo/edsr_b2_x2.pth --folder_lq testsets/SR/LR/Set5/x2/ --folder_gt testsets/SR/HR/Set5/
+python TEST_psnr.py --model edsr --scale 2 --model_path model_zoo/edsr_b2_x2.pth --folder_lq testsets/SR/LR/Set5/x2/ --folder_gt testsets/SR/HR/Set5/
 ```
 ## Performance
 - 아래의 예시 코드를 실행하여 두 영상 간의 객관적 화질 지표(PSNR, SSIM)과 주관적 화질 지표(LPIPS)를 확인할 수 있습니다.
 ```
-python check_performance.py --folder_lq <평가하기 위한 영상 경로> --folder_gt <정답, 원본 영상 경로>
+python EVAL_performance.py --folder_lq <평가하기 위한 영상 경로> --folder_gt <정답, 원본 영상 경로>
 ```
 
 ## Acknowledgement
