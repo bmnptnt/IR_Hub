@@ -3,11 +3,12 @@
 
 *.jpg
 
+*.yuv
+
+*.pth
 
 trainsets/
 
-trainsets/
+options/baek/
 
-trainsets/
-
-trainsets/
+*.pyc

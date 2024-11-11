@@ -23,7 +23,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 '''
 
 
-IMG_EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP', '.tif']
+IMG_EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP', '.tif', '.yuv']
 
 
 def is_image_file(filename):
@@ -202,6 +202,18 @@ def imread_uint(path, n_channels=3):
         img = cv2.imread(path) # When using grayscale, if channel is different gt with lq
     return img
 
+# --------------------------------------------
+# get YUV400p 10bit image
+# --------------------------------------------
+def imread_yuv400_10bit(path,width,height, n_channels=3):
+    #  input: path
+
+    if n_channels == 1:
+        img = np.fromfile(path,dtype=np.uint16)  # cv2.IMREAD_GRAYSCALE
+        img = img.reshape(height,width,1)
+    else :
+        print("Code for channel>=2 is not updated")
+    return img
 
 # --------------------------------------------
 # matlab's imwrite
@@ -261,7 +273,14 @@ def single2uint(img):
 
     return np.uint8((img.clip(0, 1)*255.).round())
 
+def uint102single(img):
 
+    return np.float32(img/1023.)
+
+
+def single2uint10(img):
+
+    return np.uint16((img.clip(0, 1)*1023.).round())
 def uint162single(img):
 
     return np.float32(img/65535.)
@@ -297,6 +316,12 @@ def tensor2uint(img):
     if img.ndim == 3:
         img = np.transpose(img, (1, 2, 0))
     return np.uint8((img*255.0).round())
+def tensor2uint10(img):
+    img = img.data.squeeze().float().clamp_(0, 1).cpu().numpy()
+    if img.ndim == 3:
+        img = np.transpose(img, (1, 2, 0))
+    return np.uint16((img*1023.0).round())
+
 def tensor2uint16(img):
     img = img.data.squeeze().float().clamp_(0, 1).cpu().numpy()
     if img.ndim == 3:
@@ -647,6 +672,25 @@ def calculate_psnr(img1, img2, border=0):
     if mse == 0:
         return float('inf')
     return 20 * math.log10(255.0 / math.sqrt(mse))
+
+
+def calculate_psnr10(img1, img2, border=0):
+    # img1 and img2 have range [0, 255]
+    #img1 = img1.squeeze()
+    #img2 = img2.squeeze()
+    if not img1.shape == img2.shape:
+        print(img1.shape, img2.shape)
+        raise ValueError('Input images must have the same dimensions.')
+    h, w = img1.shape[:2]
+    img1 = img1[border:h-border, border:w-border]
+    img2 = img2[border:h-border, border:w-border]
+
+    img1 = img1.astype(np.float64)
+    img2 = img2.astype(np.float64)
+    mse = np.mean((img1 - img2)**2)
+    if mse == 0:
+        return float('inf')
+    return 20 * math.log10(1023.0 / math.sqrt(mse))
 
 
 def calculate_psnr16(img1, img2, border=0):

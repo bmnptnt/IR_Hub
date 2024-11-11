@@ -12,7 +12,7 @@ from models.network_chat import SwinIR as swinir
 from utils import util_calculate_psnr_ssim as util
 
 from torchinfo import summary
-
+patch_num=1
 os.environ["CUDA_VISIBLE_DEVICES"]="1"
 def main():
     parser = argparse.ArgumentParser()
@@ -58,16 +58,52 @@ def main():
                               (2, 0, 1))  # HCW-BGR to CHW-RGB
         img_lq = torch.from_numpy(img_lq).float().unsqueeze(0).to(device)  # CHW-RGB to NCHW-RGB
 
-        # inference
-        with torch.no_grad():
-            # pad input image to be a multiple of window_size
-            _, _, h_old, w_old = img_lq.size()
-            h_pad = (h_old // window_size + 1) * window_size - h_old
-            w_pad = (w_old // window_size + 1) * window_size - w_old
-            img_lq = torch.cat([img_lq, torch.flip(img_lq, [2])], 2)[:, :, :h_old + h_pad, :]
-            img_lq = torch.cat([img_lq, torch.flip(img_lq, [3])], 3)[:, :, :, :w_old + w_pad]
-            output = test(img_lq, model)
-            output = output[..., :h_old * args.scale, :w_old * args.scale]
+        # # inference
+        # with torch.no_grad():
+        #     # pad input image to be a multiple of window_size
+        #     _, _, h_old, w_old = img_lq.size()
+        #     h_pad = (h_old // window_size + 1) * window_size - h_old
+        #     w_pad = (w_old // window_size + 1) * window_size - w_old
+        #     img_lq = torch.cat([img_lq, torch.flip(img_lq, [2])], 2)[:, :, :h_old + h_pad, :]
+        #     img_lq = torch.cat([img_lq, torch.flip(img_lq, [3])], 3)[:, :, :, :w_old + w_pad]
+        #     output = test(img_lq, model)
+        #     output = output[..., :h_old * args.scale, :w_old * args.scale]
+
+        '''Split image to patchs'''
+
+        res_h = img_lq.shape[2]
+        res_w = img_lq.shape[3]
+        lq_patchs = []
+
+        for i in range(0, patch_num):
+            for j in range(0, patch_num):
+                lq_patchs.append(img_lq[:, :, i * (res_h // patch_num):(i + 1) * (res_h // patch_num),
+                                 j * (res_w // patch_num):(j + 1) * (res_w // patch_num)])
+
+        result_patchs = []
+        for i, patch in enumerate(lq_patchs):
+            with torch.no_grad():
+                # pad input image to be a multiple of window_size
+                _, _, h_old, w_old = patch.size()
+                h_pad = (h_old // window_size + 1) * window_size - h_old
+                w_pad = (w_old // window_size + 1) * window_size - w_old
+                patch = torch.cat([patch, torch.flip(patch, [2])], 2)[:, :, :h_old + h_pad, :]
+                patch = torch.cat([patch, torch.flip(patch, [3])], 3)[:, :, :, :w_old + w_pad]
+                output = test(patch, model, args, window_size)
+                output = output[..., :h_old * args.scale, :w_old * args.scale]
+                result_patchs.append(output)
+
+        merged_img = torch.tensor([]).to(device)
+        for i in range(0, patch_num):
+            merged_line = torch.tensor([]).to(device)
+            for j in range(0, patch_num):
+                merged_line = torch.cat((merged_line, result_patchs[patch_num * i + j]), axis=3)
+            merged_img = torch.cat((merged_img, merged_line), axis=2)
+
+        output = merged_img
+        _, _, h_old, w_old = img_lq.size()
+
+        '''Merge patchs to single image'''
 
         # save image
         output = output.data.squeeze().float().cpu().clamp_(0, 1).numpy()

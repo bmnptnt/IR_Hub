@@ -29,13 +29,13 @@ class _Residual_Block(nn.Module):
         return output
 
 class EDSR(nn.Module):
-    def __init__(self,scale=2,n_feats=64,n_resblocks=16):
+    def __init__(self,in_chans=3,scale=2,n_feats=64,n_resblocks=16):
         super(EDSR, self).__init__()
 
         rgb_mean = (0.4488, 0.4371, 0.4040)
         self.sub_mean = MeanShift(rgb_mean, -1)
         self.n_feats=n_feats
-        self.conv_input = nn.Conv2d(in_channels=3, out_channels=n_feats, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv_input = nn.Conv2d(in_channels=in_chans, out_channels=n_feats, kernel_size=3, stride=1, padding=1, bias=False)
 
         self.residual = self.make_layer(_Residual_Block, n_resblocks)
 
@@ -56,7 +56,7 @@ class EDSR(nn.Module):
             )
 
 
-        self.conv_output = nn.Conv2d(in_channels=n_feats, out_channels=3, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv_output = nn.Conv2d(in_channels=n_feats, out_channels=in_chans, kernel_size=3, stride=1, padding=1, bias=False)
 
         self.add_mean = MeanShift(rgb_mean, 1)
 

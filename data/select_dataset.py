@@ -42,7 +42,10 @@ def define_Dataset(dataset_opt):
     # super-resolution
     # -----------------------------------------
     elif dataset_type in ['sr', 'super-resolution']:
+
         from data.dataset_sr import DatasetSR as D
+    elif dataset_type in ['sr_yuv400_10bit']:
+        from data.dataset_sr_yuv400_10bit import DatasetSR_yuv400_10 as D
 
     elif dataset_type in ['srmd']:
         from data.dataset_srmd import DatasetSRMD as D

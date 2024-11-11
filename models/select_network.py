@@ -27,6 +27,7 @@ def define_G(opt):
         from models.network_edsr import EDSR as net
         netG = net(scale=opt_net['upscale'],
                    n_feats=opt_net['n_feats'],
+                   in_chans=opt_net['in_chans'],
                    n_resblocks=opt_net['n_resblocks'])
 
 
@@ -261,23 +262,26 @@ def define_G(opt):
                    feature_channels=opt_net['n_feats'],
                    patch_size=opt['datasets']['train']['H_size'])
 
-    '''
-    # ----------------------------------------
-    # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑ MY task in IR Hub ↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-    # ----------------------------------------
-    '''
+    elif net_type == 'mdt':
+        from models.network_mdt import MDT as net
+        netG = net(in_channels=opt_net['in_chans'],
+                    dim=opt_net['dim'],
+                    scale=opt_net['upscale'],
+                    heads=opt_net['num_heads'],
+                    ffn_expansion_factor=opt_net['ffn'],
+                    bias=opt_net['bias'],
+                    LayerNorm_type=opt_net['LayerNorm'])
 
-    '''
-    ------------------------------------------------------------------------------------------------------------------------
-    ------------------------------------------------------------------------------------------------------------------------
-    ------------------------------------------------------------------------------------------------------------------------
-    '''
 
-    '''
+    # ----------------------------------------
+    # ↑↑↑↑↑↑↑↑↑↑ MY task in IR Hub ↑↑↑↑↑↑↑↑↑↑↑
+    # ----------------------------------------
+
+
     # ----------------------------------------
     # ↓↓↓↓↓↓↓ Proposed task from KAIR ↓↓↓↓↓↓↓↓
     # ----------------------------------------
-    '''
+
 
     # ----------------------------------------
     # denoising task

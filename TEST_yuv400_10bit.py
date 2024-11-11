@@ -9,6 +9,8 @@ import torch
 from utils import util_calculate_psnr_ssim as util
 from torchinfo import summary
 import time
+
+patch_num=1
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='edsr', help='mct, edsr,')
@@ -55,21 +57,58 @@ def main():
                               (2, 0, 1))  # HCW-BGR to CHW-RGB
         img_lq = torch.from_numpy(img_lq).float().unsqueeze(0).to(device)  # CHW-RGB to NCHW-RGB
 
-        # inference
-        with torch.no_grad():
-            # pad input image to be a multiple of window_size
-            _, _, h_old, w_old = img_lq.size()
-            h_pad = (h_old // window_size + 1) * window_size - h_old
-            w_pad = (w_old // window_size + 1) * window_size - w_old
-            img_lq = torch.cat([img_lq, torch.flip(img_lq, [2])], 2)[:, :, :h_old + h_pad, :]
-            img_lq = torch.cat([img_lq, torch.flip(img_lq, [3])], 3)[:, :, :, :w_old + w_pad]
+        # # inference
+        # with torch.no_grad():
+        #     # pad input image to be a multiple of window_size
+        #     _, _, h_old, w_old = img_lq.size()
+        #     h_pad = (h_old // window_size + 1) * window_size - h_old
+        #     w_pad = (w_old // window_size + 1) * window_size - w_old
+        #     img_lq = torch.cat([img_lq, torch.flip(img_lq, [2])], 2)[:, :, :h_old + h_pad, :]
+        #     img_lq = torch.cat([img_lq, torch.flip(img_lq, [3])], 3)[:, :, :, :w_old + w_pad]
+        #
+        #     start_t=time.time()
+        #     output = test(img_lq, model)
+        #     end_t=time.time()-start_t
+        #     if idx==0 : first_t=end_t
+        #     total_t+=end_t
+        #     output = output[..., :h_old * args.scale, :w_old * args.scale]
 
-            start_t=time.time()
-            output = test(img_lq, model)
-            end_t=time.time()-start_t
-            if idx==0 : first_t=end_t
-            total_t+=end_t
-            output = output[..., :h_old * args.scale, :w_old * args.scale]
+        '''Split image to pathcs'''
+
+        res_h = img_lq.shape[2]
+        res_w = img_lq.shape[3]
+        lq_patchs = []
+
+        for i in range(0, patch_num):
+            for j in range(0, patch_num):
+                lq_patchs.append(img_lq[:, :, i * (res_h // patch_num):(i + 1) * (res_h // patch_num),
+                                 j * (res_w // patch_num):(j + 1) * (res_w // patch_num)])
+
+        result_patchs = []
+        for i, patch in enumerate(lq_patchs):
+            with torch.no_grad():
+                # pad input image to be a multiple of window_size
+                _, _, h_old, w_old = patch.size()
+                h_pad = (h_old // window_size + 1) * window_size - h_old
+                w_pad = (w_old // window_size + 1) * window_size - w_old
+                patch = torch.cat([patch, torch.flip(patch, [2])], 2)[:, :, :h_old + h_pad, :]
+                patch = torch.cat([patch, torch.flip(patch, [3])], 3)[:, :, :, :w_old + w_pad]
+                output = test(patch, model, args, window_size)
+                output = output[..., :h_old * args.scale, :w_old * args.scale]
+                result_patchs.append(output)
+
+        merged_img = torch.tensor([]).to(device)
+        for i in range(0, patch_num):
+            merged_line = torch.tensor([]).to(device)
+            for j in range(0, patch_num):
+                merged_line = torch.cat((merged_line, result_patchs[patch_num * i + j]), axis=3)
+            merged_img = torch.cat((merged_img, merged_line), axis=2)
+
+        output = merged_img
+        _, _, h_old, w_old = img_lq.size()
+
+        '''Merge pathcs to single image'''
+
 
         # save image
         output = output.data.squeeze().float().cpu().clamp_(0, 1).numpy()
@@ -134,7 +173,7 @@ def define_model(args):
 
     elif args.model =='edsr':
         from models.network_edsr import EDSR as net
-        model = net(scale=args.scale)
+        model = net()
     elif args.model =='swinir_light':
         from models.network_swinir import SwinIR as net
         model = net(upscale=args.scale, in_chans=3, img_size=64, window_size=8,
@@ -160,7 +199,7 @@ def define_model(args):
                    n_resblocks=6,
                    n_feats=64)
     elif args.model =='mcsr8':
-        from models.network_mcsr8_2 import MCSR8 as net
+        from models.network_mcsr8 import MCSR8 as net
         model = net(scale=args.scale,
                    in_chans=3,
                    n_feats=[48, 48, 24, 24, 24, 12, 12, 8])
