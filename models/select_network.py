@@ -24,7 +24,7 @@ def define_G(opt):
     '''
 
     if net_type == 'edsr':
-        from models.network_edsr import EDSR as net
+        from models.network_edsr_chAdapt import EDSR as net
         netG = net(scale=opt_net['upscale'],
                    n_feats=opt_net['n_feats'],
                    in_chans=opt_net['in_chans'],
@@ -272,7 +272,125 @@ def define_G(opt):
                     bias=opt_net['bias'],
                     LayerNorm_type=opt_net['LayerNorm'])
 
+    elif net_type == 'dct':
+        from models.network_dct_2 import DCT as net
+        netG = net(in_channels=opt_net['in_chans'],
+                    dim=opt_net['dim'],
+                    scale=opt_net['upscale'],
+                    heads=opt_net['num_heads'],
+                    ffn_expansion_factor=opt_net['ffn'],
+                    bias=opt_net['bias'],
+                    LayerNorm_type=opt_net['LayerNorm'])
 
+
+    elif net_type == 'nafsr':
+        from models.network_nafsr import NAFSR as net
+        netG = net(in_channels=opt_net['in_chans'],
+                    dim=opt_net['dim'],
+                    scale=opt_net['upscale'],
+                    dw_expansion_factor=opt_net['dw'],
+                    ffn_expansion_factor=opt_net['ffn'],
+                    bias=opt_net['bias'],
+                    LayerNorm_type=opt_net['LayerNorm'])
+
+    elif net_type == 'cgsr':
+        from models.network_cgsr import CGSR as net
+        netG = net(in_channels=opt_net['in_chans'],
+                    dim=opt_net['dim'],
+                    scale=opt_net['upscale'],
+                    gce_conv_factor=opt_net['gce'],
+                    dw_expansion_factor=opt_net['dw'],
+                    ffn_expansion_factor=opt_net['ffn'],
+                    bias=opt_net['bias'],
+                    LayerNorm_type=opt_net['LayerNorm'])
+
+    elif net_type == 'proposal_1':
+        from models.network_proposal_1 import Proposal_1 as net
+        netG = net(in_channels=opt_net['in_chans'],
+                    dim=opt_net['dim'],
+                    scale=opt_net['upscale'],
+                    ffn_expansion_factor=opt_net['ffn'],
+                    LayerNorm_type=opt_net['LayerNorm'])
+
+    elif net_type == 'proposal_2':
+        from models.network_proposal_2 import Proposal_2 as net
+        netG = net(in_channels=opt_net['in_chans'],
+                    dim=opt_net['dim'],
+                    scale=opt_net['upscale'],
+                    ffn_expansion_factor=opt_net['ffn'],
+                    LayerNorm_type=opt_net['LayerNorm'])
+
+    elif net_type == 'rct':
+        from models.network_rct import RCT as net
+        netG = net(in_chans=opt_net['in_chans'],
+                    feature_channels=opt_net['dim'],
+                    upscale=opt_net['upscale'],
+                    num_heads=opt_net['num_heads'],
+                    ffn_factor=opt_net['ffn'],
+                    bias=opt_net['bias'],
+                    norm_type=opt_net['LayerNorm'])
+
+    elif net_type == 'lct':
+        from models.network_lct import LCT as net
+        netG = net(in_chans=opt_net['in_chans'],
+                    feature_channels=opt_net['dim'],
+                    upscale=opt_net['upscale'],
+                    gce_factor=opt_net['gce'],
+                    dw_factor=opt_net['dw'],
+                    ffn_factor=opt_net['ffn'],
+                    bias=opt_net['bias'],
+                    norm_type=opt_net['LayerNorm'])
+
+
+    elif net_type == 'adsr':
+        from models.network_adsr import ADSR as net
+        netG = net(upscale=opt_net['upscale'],
+                   in_chans=opt_net['in_chans'],
+                   feature_channels=opt_net['n_feats'],
+                   patch_size=opt['datasets']['train']['H_size'],
+                   norm_type=opt_net['LayerNorm']
+                   )
+
+    elif net_type == 'adsr2':
+        from models.network_adsr_2 import ADSR as net
+        netG = net(upscale=opt_net['upscale'],
+                   in_chans=opt_net['in_chans'],
+                   feature_channels=opt_net['n_feats'],
+                   patch_size=opt['datasets']['train']['H_size'],
+                   norm_type=opt_net['LayerNorm']
+                   )
+
+
+    elif net_type == 'adsr3':
+        from models.network_adsr_3 import ADSR as net
+        netG = net(upscale=opt_net['upscale'],
+                   in_chans=opt_net['in_chans'],
+                   feature_channels=opt_net['n_feats'],
+                   patch_size=opt['datasets']['train']['H_size'],
+                   norm_type = opt_net['LayerNorm'],
+                   num_heads=opt_net['num_heads'],
+                   ffn_expansion_factor=opt_net['ffn_expansion_factor']
+                   )
+    elif net_type == 'cpst':
+        from models.network_cpst import CPST as net
+        netG = net(in_chans=opt_net['in_chans'],
+                    feature_channels=opt_net['dim'],
+                    upscale=opt_net['upscale'],
+                    patch_size=opt_net['patch_size'],
+                    num_heads=opt_net['num_heads'],
+                    ffn_factor=opt_net['ffn'],
+                    bias=opt_net['bias'],
+                    norm_type=opt_net['LayerNorm'])
+
+    elif net_type == 'rfct':
+        from models.network_rfct import RFCT as net
+        netG = net(in_chans=opt_net['in_chans'],
+                    feature_channels=opt_net['dim'],
+                    upscale=opt_net['upscale'],
+                    num_heads=opt_net['num_heads'],
+                    ffn_factor=opt_net['ffn'],
+                    bias=opt_net['bias'],
+                    norm_type=opt_net['LayerNorm'])
     # ----------------------------------------
     # ↑↑↑↑↑↑↑↑↑↑ MY task in IR Hub ↑↑↑↑↑↑↑↑↑↑↑
     # ----------------------------------------

@@ -22,11 +22,8 @@ from tqdm import tqdm
 import shutil
 patch_num=2
 
-
 from torchinfo import summary
 import matplotlib.pyplot as plt
-
-# os.environ["CUDA_VISIBLE_DEVICES"]="0,1"
 
 def main(json_path='options/train_msrresnet_psnr.json'):
 
@@ -44,8 +41,6 @@ def main(json_path='options/train_msrresnet_psnr.json'):
 
     opt = option.parse(parser.parse_args().opt, is_train=True)
     opt['dist'] = parser.parse_args().dist
-
-
 
     # ----------------------------------------
     # distributed settings
@@ -118,7 +113,6 @@ def main(json_path='options/train_msrresnet_psnr.json'):
     for phase, dataset_opt in opt['datasets'].items():
         if phase == 'train':
             train_set = define_Dataset(dataset_opt)
-
             train_size = int(math.ceil(len(train_set) / dataset_opt['dataloader_batch_size']))
             if opt['rank'] == 0:
                 logger.info('Number of train images: {:,d}, iters: {:,d}'.format(len(train_set), train_size))
@@ -140,19 +134,9 @@ def main(json_path='options/train_msrresnet_psnr.json'):
                                           pin_memory=True)
 
         elif phase == 'test':
-
-
             test_set = define_Dataset(dataset_opt)
 
-            indices = np.arange(len(test_set))
-            np.random.shuffle(indices)
-            selected_indices = indices[:100]
-
-            test_subset = Subset(test_set, selected_indices)
             test_loader = DataLoader(test_set, batch_size=1,
-                                     shuffle=False, num_workers=1,
-                                     drop_last=False, pin_memory=True)
-            test_subloader = DataLoader(test_subset, batch_size=1,
                                      shuffle=False, num_workers=1,
                                      drop_last=False, pin_memory=True)
         else:
@@ -168,7 +152,6 @@ def main(json_path='options/train_msrresnet_psnr.json'):
     logger.info(summary(model.netG))
     model.init_train()
 
-
     # if opt['rank'] == 0:
     #     logger.info(model.info_network())
     #     logger.info(model.info_params())
@@ -182,6 +165,7 @@ def main(json_path='options/train_msrresnet_psnr.json'):
     for epoch in range(100000):  # keep running
         if opt['dist']:
             train_sampler.set_epoch(epoch)
+
         for i, train_data in enumerate(train_loader):
 
             current_step += 1
@@ -209,7 +193,6 @@ def main(json_path='options/train_msrresnet_psnr.json'):
                 message = '<epoch:{:3d}, iter:{:8,d}, lr:{:.3e}> '.format(epoch, current_step, model.current_learning_rate())
                 for k, v in logs.items():  # merge log information into message
                     message += '{:s}: {:.3e} '.format(k, v)
-
                 logger.info(message)
 
             # -------------------------------
@@ -229,13 +212,13 @@ def main(json_path='options/train_msrresnet_psnr.json'):
 
                 for test_data in tqdm(test_loader):
 
-
                     idx += 1
                     image_name_ext = os.path.basename(test_data['L_path'][0])
                     img_name, ext = os.path.splitext(image_name_ext)
 
                     # img_dir = os.path.join(opt['path']['images'], img_name)
                     # img_dir = os.path.join(opt['path']['images'], str(current_step))
+
                     img_dir = os.path.join(opt['path']['images'], 'best_psnr')
                     util.mkdir(img_dir)
 
@@ -247,7 +230,6 @@ def main(json_path='options/train_msrresnet_psnr.json'):
                     visuals = model.current_visuals()
                     E_img = util.tensor2uint(visuals['E'])
                     H_img = util.tensor2uint(visuals['H'])
-
                     if E_img.shape[0]>H_img.shape[0]:E_img=E_img[:H_img.shape[0],:,:]
                     elif E_img.shape[0]<H_img.shape[0]:H_img=H_img[:E_img.shape[0],:,:]
 
@@ -299,11 +281,5 @@ def main(json_path='options/train_msrresnet_psnr.json'):
                         best_psnr=avg_psnr
                     elif avg_psnr<=best_psnr:
                         shutil.rmtree(img_dir)
-
-
-
-
-
-
 if __name__ == '__main__':
     main()

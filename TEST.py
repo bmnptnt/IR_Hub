@@ -13,7 +13,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='edsr', help='mct, edsr,')
     parser.add_argument('--scale', type=int, default=2, help='scale factor: 1, 2, 3, 4, 8')
-
+    parser.add_argument('--channel', type=int, default=3, help='number of channel: 1, 2, 3, 4')
+    parser.add_argument('--bit', type=int, default=8, help='input bit depth: 8, 16')
     parser.add_argument('--model_path', type=str,
                         default='model_zoo/EDSR.pth')
     parser.add_argument('--folder_lq', type=str, default='testsets/LR/LRBI/Manga109/x2/',
@@ -75,24 +76,45 @@ def main():
         output = output.data.squeeze().float().cpu().clamp_(0, 1).numpy()
         if output.ndim == 3:
             output = np.transpose(output[[2, 1, 0], :, :], (1, 2, 0))  # CHW-RGB to HCW-BGR
-        output = (output * 255.0).round().astype(np.uint8)  # float32 to uint8
+
+        if args.bit == 16:
+            output = (output * 65535.0).round().astype(np.uint16)  # float32 to uint16
+        else:
+            output = (output * 255.0).round().astype(np.uint8)  # float32 to uint8
         cv2.imwrite(f'{save_dir}/{imgname}_{args.model}.png', output)
 
         # evaluate psnr/ssim/psnr_b
         if img_gt is not None:
-            img_gt = (img_gt * 255.0).round().astype(np.uint8)  # float32 to uint8
+            if args.bit ==16:
+                img_gt = (img_gt * 65535.0).round().astype(np.uint16)  # float32 to uint8
+            else :
+                img_gt = (img_gt * 255.0).round().astype(np.uint8)  # float32 to uint8
+
             img_gt = img_gt[:h_old * args.scale, :w_old * args.scale, ...]  # crop gt
             img_gt = np.squeeze(img_gt)
+            if args.bit ==16:
+                psnr = util.calculate_psnr16(output, img_gt, border=border)
+                ssim = util.calculate_ssim16(output, img_gt, border=border)
+            else :
+                psnr = util.calculate_psnr(output, img_gt, border=border)
+                ssim = util.calculate_ssim(output, img_gt, border=border)
 
-            psnr = util.calculate_psnr(output, img_gt, border=border)
-            ssim = util.calculate_ssim(output, img_gt, border=border)
             test_results['psnr'].append(psnr)
             test_results['ssim'].append(ssim)
             if img_gt.ndim == 3:  # RGB image
-                output_y = util.bgr2ycbcr(output.astype(np.float32) / 255.) * 255.
-                img_gt_y = util.bgr2ycbcr(img_gt.astype(np.float32) / 255.) * 255.
-                psnr_y = util.calculate_psnr(output_y, img_gt_y, border=border)
-                ssim_y = util.calculate_ssim(output_y, img_gt_y, border=border)
+                if args.bit == 16:
+                    output_y = util.bgr2ycbcr(output.astype(np.float32) / 65535.) * 65535.
+                    img_gt_y = util.bgr2ycbcr(img_gt.astype(np.float32) / 65535.) * 65535.
+                else :
+                    output_y = util.bgr2ycbcr(output.astype(np.float32) / 255.) * 255.
+                    img_gt_y = util.bgr2ycbcr(img_gt.astype(np.float32) / 255.) * 255.
+                if args.bit == 16:
+                    psnr_y = util.calculate_psnr16(output_y, img_gt_y, border=border)
+                    ssim_y = util.calculate_ssim16(output_y, img_gt_y, border=border)
+                else :
+                    psnr_y = util.calculate_psnr(output_y, img_gt_y, border=border)
+                    ssim_y = util.calculate_ssim(output_y, img_gt_y, border=border)
+
                 test_results['psnr_y'].append(psnr_y)
                 test_results['ssim_y'].append(ssim_y)
 
@@ -124,7 +146,7 @@ def define_model(args):
     # 001 classical image sr
     if args.model == 'mct':
         from models.network_mct import MCT as net
-        model = net(in_channels=3,
+        model = net(in_channels=args.channel,
                     dim=[48, 48, 24, 24, 24, 12, 12, 8, 4],
                     scale=args.scale,
                     heads=[8, 8, 6, 6, 6, 4, 4, 2, 1],
@@ -133,23 +155,23 @@ def define_model(args):
                     LayerNorm_type='WithBias')
 
     elif args.model =='edsr':
-        from models.network_edsr import EDSR as net
-        model = net(scale=args.scale)
+        from models.network_edsr_chAdapt import EDSR as net
+        model = net(in_chans=args.channel,scale=args.scale,n_feats=64,n_resblocks=16)
     elif args.model =='swinir_light':
         from models.network_swinir import SwinIR as net
-        model = net(upscale=args.scale, in_chans=3, img_size=64, window_size=8,
+        model = net(upscale=args.scale, in_chans=args.channel, img_size=64, window_size=8,
                     img_range=1., depths=[6, 6, 6, 6], embed_dim=60, num_heads=[6, 6, 6, 6],
                     mlp_ratio=2, upsampler='pixelshuffledirect', resi_connection='1conv')
 
     elif args.model =='swinir':
         from models.network_swinir import SwinIR as net
-        model = net(upscale=args.scale, in_chans=3, img_size=48, window_size=8,
+        model = net(upscale=args.scale, in_chans=args.channel, img_size=48, window_size=8,
                     img_range=1., depths=[6, 6, 6, 6, 6, 6], embed_dim=180, num_heads=[6, 6, 6, 6, 6, 6],
                     mlp_ratio=2, upsampler='pixelshuffle', resi_connection='1conv')
 
     elif args.model == 'swinir_nnpf':
         from models.network_swinir import SwinIR as net
-        model = net(upscale=args.scale, in_chans=3, img_size=128, window_size=8,
+        model = net(upscale=args.scale, in_chans=args.channel, img_size=128, window_size=8,
                        img_range=1., depths=[6, 6, 6, 6], embed_dim=60, num_heads=[6, 6, 6, 6],
                        mlp_ratio=2, upsampler=None, resi_connection='1conv')
 
@@ -162,12 +184,12 @@ def define_model(args):
     elif args.model =='mcsr8':
         from models.network_mcsr8_2 import MCSR8 as net
         model = net(scale=args.scale,
-                   in_chans=3,
+                   in_chans=args.channel,
                    n_feats=[48, 48, 24, 24, 24, 12, 12, 8])
     elif args.model =='rdsr':
         from models.network_rdsr import RDSR as net
         model = net(upscale=args.scale,
-                   in_chans=3,
+                   in_chans=args.channel,
                    feature_channels=64)
     elif args.model =='han':
         from models.network_han import HAN as net
@@ -178,59 +200,30 @@ def define_model(args):
     elif args.model =='erbn':
         from models.network_erbn import ERBN as net
         model = net(scale=args.scale,
-                   in_chans=3,
+                   in_chans=args.channel,
                    n_feats= 64,
                    n_blocks=9)
     elif args.model =='rdsr_le':
         from models.network_rdsr_le import RDSR_LE as net
         model = net(upscale=args.scale,
-                    in_channels=3,
+                    in_channels=args.channel,
                     out_channels=3,
                    feature_channels=52)
     elif args.model =='rlfn':
         from models.network_rlfn import RLFN as net
         model = net(upscale=args.scale,
-                    in_channels=3,
+                    in_channels=args.channel,
                     out_channels=3,
                    feature_channels=52)
     elif args.model =='mcsr8_bi':
         from models.network_mcsr8_2 import MCSR8 as net
         model = net(scale=args.scale,
-                   in_chans=3,
+                   in_chans=args.channel,
                    n_feats=[48, 48, 24, 24, 24, 12, 12, 8])
-    elif args.model =='mrmt':
-        from models.network_mrmt import MRMT as net
-        model = net(in_channels=3,
-                    dim=[48, 48, 24, 24, 24, 12, 12, 8, 4],
-                    upscale=2,
-                    heads=[8, 8, 6, 6, 6, 4, 4, 2, 1],
-                    ffn_expansion_factor=3,
-                    bias=0,
-                    LayerNorm_type="WithBias")
-
-    elif args.model =='mrmt2':
-        from models.network_mrmt2 import MRMT as net
-        model = net(in_channels=3,
-                    dim=[48, 48, 24, 24, 24, 12, 12, 8, 4],
-                    upscale=2,
-                    heads=[8, 8, 6, 6, 6, 4, 4, 2, 1],
-                    ffn_expansion_factor=3,
-                    bias=0,
-                    LayerNorm_type="WithBias")
-
-    elif args.model =='mrt':
-        from models.network_mrt import MRT as net
-        model = net(in_channels=3,
-                    dim=[48, 48, 24, 24, 24, 12, 12, 8, 4],
-                    upscale=2,
-                    heads=[8, 8, 6, 6, 6, 4, 4, 2, 1],
-                    ffn_expansion_factor=2.66,
-                    bias=0,
-                    LayerNorm_type="WithBias")
     elif args.model == 'hat':
         from models.network_hat import HAT as net
         model = net(upscale=2,
-                   in_chans=3,
+                   in_chans=args.channel,
                    img_size=64,
                    window_size=16,
                    img_range=1.0,
@@ -247,7 +240,7 @@ def define_model(args):
     elif args.model == 'chat':
         from models.network_chat import CHAT as net
         model = net(upscale=2,
-                   in_chans=3,
+                   in_chans=args.channel,
                    img_size=64,
                    window_size=8,
                    img_range=1.0,
@@ -257,6 +250,36 @@ def define_model(args):
                    mlp_ratio=2,
                    upsampler="pixelshuffledirect",
                    resi_connection="1conv")
+
+    elif args.model == 'dct':
+        from models.network_dct import DCT as net
+        model=net(in_channels=args.channel,
+                    dim=16,
+                    scale=args.scale,
+                    heads=4,
+                    ffn_expansion_factor=2.66,
+                    bias=0,
+                    LayerNorm_type="WithBias")
+
+    elif args.model == 'rct':
+        from models.network_rct import RCT as net
+        model = net(in_chans=args.channel,
+                    feature_channels=56,
+                    upscale=args.scale,
+                    num_heads=8,
+                    ffn_factor=3,
+                    bias=False,
+                    norm_type="WithBias")
+
+    elif args.model == 'adsr3':
+        from models.network_adsr_3 import ADSR as net
+        model = net(upscale=2,
+                   in_chans=args.channel,
+                   feature_channels=72,
+                   norm_type="WithBias",
+                   num_heads=8,
+                   ffn_expansion_factor=3.0
+                   )
 
     pretrained_model = torch.load(args.model_path)
     model.load_state_dict(pretrained_model)
@@ -289,9 +312,19 @@ def setup(args):
 
 def get_image_pair(args, path):
     (imgname, imgext) = os.path.splitext(os.path.basename(path))
-    img_gt = cv2.imread(path, cv2.IMREAD_COLOR).astype(np.float32) / 255.
-    img_lq = cv2.imread(f'{args.folder_lq}{imgname}{imgext}', cv2.IMREAD_COLOR).astype(
-        np.float32) / 255.
+
+    if args.bit == 16:
+        img_gt = cv2.imread(path, cv2.IMREAD_UNCHANGED).astype(np.float32) / 65535.
+        img_lq = cv2.imread(f'{args.folder_lq}{imgname}{imgext}', cv2.IMREAD_UNCHANGED).astype(
+            np.float32) / 65535.
+    else :
+        img_gt = cv2.imread(path).astype(np.float32) / 255.
+        img_lq = cv2.imread(f'{args.folder_lq}{imgname}{imgext}').astype(
+            np.float32) / 255.
+
+    if args.channel == 1:
+        img_gt=np.expand_dims(img_gt, axis=-1)
+        img_lq=np.expand_dims(img_lq, axis=-1)
 
     return imgname, img_lq, img_gt
 

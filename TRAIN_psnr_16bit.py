@@ -18,19 +18,12 @@ from utils.utils_dist import get_dist_info, init_dist
 from data.select_dataset import define_Dataset
 from models.select_model import define_Model
 
+from tqdm import tqdm
+import shutil
 patch_num=8
 
-'''
-# --------------------------------------------
-# training code for MSRResNet
-# --------------------------------------------
-# Kai Zhang (cskaizhang@gmail.com)
-# github: https://github.com/cszn/KAIR
-# --------------------------------------------
-# https://github.com/xinntao/BasicSR
-# --------------------------------------------
-'''
-
+from torchinfo import summary
+import matplotlib.pyplot as plt
 
 def main(json_path='options/train_msrresnet_psnr.json'):
 
@@ -93,7 +86,7 @@ def main(json_path='options/train_msrresnet_psnr.json'):
         logger_name = 'train'
         utils_logger.logger_info(logger_name, os.path.join(opt['path']['log'], logger_name+'.log'))
         logger = logging.getLogger(logger_name)
-        logger.info(option.dict2str(opt))
+        # logger.info(option.dict2str(opt))
 
     # ----------------------------------------
     # seed
@@ -156,7 +149,9 @@ def main(json_path='options/train_msrresnet_psnr.json'):
     '''
 
     model = define_Model(opt)
+    logger.info(summary(model.netG))
     model.init_train()
+
     # if opt['rank'] == 0:
     #     logger.info(model.info_network())
         # logger.info(model.info_params())
@@ -166,7 +161,7 @@ def main(json_path='options/train_msrresnet_psnr.json'):
     # Step--4 (main training)
     # ----------------------------------------
     '''
-
+    best_psnr = 0.0
     for epoch in range(1000000):  # keep running
         if opt['dist']:
             train_sampler.set_epoch(epoch)
@@ -203,9 +198,9 @@ def main(json_path='options/train_msrresnet_psnr.json'):
             # -------------------------------
             # 5) save model
             # -------------------------------
-            if current_step % opt['train']['checkpoint_save'] == 0 and opt['rank'] == 0:
-                logger.info('Saving the model.')
-                model.save(current_step)
+            # if current_step % opt['train']['checkpoint_save'] == 0 and opt['rank'] == 0:
+            #     logger.info('Saving the model.')
+            #     model.save(current_step)
 
             # -------------------------------
             # 6) testing
@@ -217,21 +212,30 @@ def main(json_path='options/train_msrresnet_psnr.json'):
 
                 for test_data in test_loader:
 
-
                     idx += 1
                     image_name_ext = os.path.basename(test_data['L_path'][0])
                     img_name, ext = os.path.splitext(image_name_ext)
 
                     # img_dir = os.path.join(opt['path']['images'], img_name)
+                    # img_dir = os.path.join(opt['path']['images'], str(current_step))
+
                     img_dir = os.path.join(opt['path']['images'], str(current_step))
                     util.mkdir(img_dir)
 
+                    # model.feed_data(test_data)
+                    # model.test()
                     model.feed_data_patch(test_data,patch_num=patch_num)
                     model.test_patch(patch_num=patch_num)
 
                     visuals = model.current_visuals()
+
                     E_img = util.tensor2uint16(visuals['E'])
                     H_img = util.tensor2uint16(visuals['H'])
+                    if E_img.shape[0]>H_img.shape[0]:E_img=E_img[:H_img.shape[0],:]
+                    elif E_img.shape[0]<H_img.shape[0]:H_img=H_img[:E_img.shape[0],:]
+
+                    if E_img.shape[1]>H_img.shape[1]:E_img=E_img[:,:H_img.shape[1]]
+                    elif E_img.shape[1]<H_img.shape[1]:H_img=H_img[:,:E_img.shape[1]]
 
                     # -----------------------
                     # save estimated image E
@@ -253,6 +257,30 @@ def main(json_path='options/train_msrresnet_psnr.json'):
 
                 # testing log
                 logger.info('<epoch:{:3d}, iter:{:8,d}, Average PSNR : {:<.2f}dB\n'.format(epoch, current_step, avg_psnr))
+                if os.path.exists(f"{opt['path']['root']}/{opt['task']}/psnr_log.pt"):
+                    psnr_log = torch.load(f"{opt['path']['root']}/{opt['task']}/psnr_log.pt")
+                    psnr_log = torch.cat((psnr_log,torch.tensor([[current_step//1000,avg_psnr]])),dim=0)
+                else:
+                    psnr_log = torch.tensor([[current_step//1000,avg_psnr]])
 
+                psnr_fig=plt.figure()
+                plt.plot(psnr_log[:,0],psnr_log[:,1])
+                plt.grid()
+                plt.xlabel('Iterations (K)')
+                plt.ylabel('PSNR (dB)')
+                plt.savefig(f"{opt['path']['root']}/{opt['task']}/psnr_graph.pdf")
+                plt.close(psnr_fig)
+                torch.save(psnr_log,f"{opt['path']['root']}/{opt['task']}/psnr_log.pt")
+                # -------------------------------
+                # 6-1) save best model
+                # -------------------------------
+                if current_step % opt['train']['checkpoint_save'] == 0 and opt['rank'] == 0:
+                    if avg_psnr>best_psnr:
+                        logger.info('Best score is updated, Saving the best model.\n')
+                        model.save(current_step)
+                        model.save_best()
+                        best_psnr=avg_psnr
+                    elif avg_psnr<=best_psnr:
+                        shutil.rmtree(img_dir)
 if __name__ == '__main__':
     main()

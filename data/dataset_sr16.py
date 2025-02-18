@@ -4,7 +4,7 @@ import torch.utils.data as data
 import utils.utils_image as util
 
 
-class DatasetSR(data.Dataset):
+class DatasetSR_16bit(data.Dataset):
     '''
     # -----------------------------------------
     # Get L/H for SISR.
@@ -15,7 +15,7 @@ class DatasetSR(data.Dataset):
     '''
 
     def __init__(self, opt):
-        super(DatasetSR, self).__init__()
+        super(DatasetSR_16bit, self).__init__()
         self.opt = opt
         self.n_channels = opt['n_channels'] if opt['n_channels'] else 3
         self.sf = opt['scale'] if opt['scale'] else 4
@@ -33,7 +33,6 @@ class DatasetSR(data.Dataset):
             assert len(self.paths_L) == len(self.paths_H), 'L/H mismatch - {}, {}.'.format(len(self.paths_L), len(self.paths_H))
 
     def __getitem__(self, index):
-
         L_path = None
         # ------------------------------------
         # get H image
@@ -56,7 +55,7 @@ class DatasetSR(data.Dataset):
             # --------------------------------
             L_path = self.paths_L[index]
             img_L = util.imread_uint(L_path, self.n_channels)
-            img_L = util.uint2single(img_L)
+            img_L = util.uint162single(img_L)
 
         else:
             # --------------------------------
