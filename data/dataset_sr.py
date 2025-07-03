@@ -40,7 +40,7 @@ class DatasetSR(data.Dataset):
         # ------------------------------------
         H_path = self.paths_H[index]
         img_H = util.imread_uint(H_path, self.n_channels)
-        img_H = util.uint162single(img_H)
+        img_H = util.uint2single(img_H)
 
         # ------------------------------------
         # modcrop
